@@ -1,5 +1,6 @@
 export type MixStrategy = 'equal' | 'maximize-large' | 'maximize-small';
 export type PlacementStrategy = 'large-top' | 'small-bottom' | 'uniform' | 'large-bottom';
+export type TotalAreaMode = 'manual' | 'by-avg-area' | 'by-plot-pct';
 
 export interface ApartmentType {
   id: string;
@@ -10,26 +11,43 @@ export interface ApartmentType {
   color: string;
 }
 
-export interface BuildingInputs {
-  projectName: string;
-
-  totalApartments: number | null;
+export interface BuildingDef {
+  id: string;
+  name: string;
   numFloors: number | null;
   apartmentsPerFloor: number | null;
   groundFloorApartments: number | null;
   roofApartments: number | null;
-
-  plotArea: number | null;
   floorFootprint: number | null;
-  totalBuildingArea: number | null;
-
   lobbyAreaMode: 'fixed' | 'key';
   lobbyArea: number | null;
   lobbyKey: number | null;
-
+  useProjectMix: boolean;
   types: ApartmentType[];
   mixStrategy: MixStrategy | null;
   placementStrategy: PlacementStrategy;
+}
+
+export interface BuildingInputs {
+  projectName: string;
+
+  // Project-level targets
+  totalApartments: number | null;
+
+  // Area settings
+  plotArea: number | null;
+  totalAreaMode: TotalAreaMode;
+  totalBuildingArea: number | null;
+  avgAreaTarget: number | null;   // for 'by-avg-area'
+  plotPct: number | null;         // for 'by-plot-pct' (0-100)
+
+  // Global mix
+  types: ApartmentType[];
+  mixStrategy: MixStrategy | null;
+  placementStrategy: PlacementStrategy;
+
+  // Buildings
+  buildings: BuildingDef[];
 }
 
 export interface FloorApartment {
@@ -63,26 +81,46 @@ export interface ApartmentTypeResult {
 }
 
 export interface BuildingResult {
+  buildingId: string;
+  buildingName: string;
   totalApartments: number;
   numFloors: number;
   apartmentsPerFloor: number;
   groundFloorApartments: number;
   roofApartments: number;
-
   plotArea: number | null;
   floorFootprint: number;
   totalBuildingArea: number;
   totalNetArea: number;
   avgAreaPerApartment: number;
-
   lobbyAreaPerFloor: number;
   netFloorArea: number;
   utilizationRate: number;
-
   buildingCoverageRatio: number | null;
   far: number | null;
-
   types: ApartmentTypeResult[];
   floors: FloorResult[];
   warnings: string[];
+}
+
+export interface ValidationIssue {
+  severity: 'error' | 'warning' | 'info';
+  code: string;
+  title: string;
+  message: string;
+  suggestion: string;
+  buildingId?: string;
+}
+
+export interface ProjectResult {
+  buildingResults: BuildingResult[];
+  totalApartments: number;
+  totalBuildingArea: number;
+  totalNetArea: number;
+  avgAreaPerApartment: number;
+  plotArea: number | null;
+  far: number | null;
+  buildingCoverageRatio: number | null;
+  types: ApartmentTypeResult[];
+  issues: ValidationIssue[];
 }

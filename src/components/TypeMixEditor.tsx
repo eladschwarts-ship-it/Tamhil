@@ -114,8 +114,7 @@ export function TypeMixEditor({ types, mixStrategy, onChange, onStrategyChange }
                 <input
                   type="number"
                   className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm w-full outline-none focus:border-blue-400 text-center"
-                  value={t[field]}
-                  min={1}
+                  value={t[field] === 0 ? '' : t[field]}
                   onChange={e => update(t.id, field, e.target.value)}
                 />
               </div>
@@ -126,8 +125,7 @@ export function TypeMixEditor({ types, mixStrategy, onChange, onStrategyChange }
                 <input
                   type="number"
                   className="flex-1 px-2 py-1.5 text-sm outline-none text-center min-w-0"
-                  value={t.percentage}
-                  min={0} max={100}
+                  value={t.percentage === 0 ? '' : t.percentage}
                   onChange={e => update(t.id, 'percentage', e.target.value)}
                 />
                 <span className="text-xs text-slate-400 px-1">%</span>
