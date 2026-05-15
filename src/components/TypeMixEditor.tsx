@@ -1,4 +1,4 @@
-import type { ApartmentType, MixStrategy } from '../types';
+import type { ApartmentType, MixStrategy, RemainderStrategy } from '../types';
 
 const COLOR_PALETTE = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
@@ -9,8 +9,10 @@ const COLOR_PALETTE = [
 interface Props {
   types: ApartmentType[];
   mixStrategy: MixStrategy | null;
+  remainderStrategy: RemainderStrategy | null;
   onChange: (types: ApartmentType[]) => void;
   onStrategyChange: (s: MixStrategy) => void;
+  onRemainderStrategyChange: (s: RemainderStrategy) => void;
 }
 
 const STRATEGIES: { id: MixStrategy; label: string; desc: string }[] = [
@@ -19,9 +21,17 @@ const STRATEGIES: { id: MixStrategy; label: string; desc: string }[] = [
   { id: 'maximize-small', label: 'מקסום דירות קטנות', desc: '60% / 30% / 10%' },
 ];
 
-export function TypeMixEditor({ types, mixStrategy, onChange, onStrategyChange }: Props) {
+const REMAINDER_STRATEGIES: { id: RemainderStrategy; label: string }[] = [
+  { id: 'proportional', label: 'פרופורציונלי' },
+  { id: 'equal', label: 'חלוקה שווה' },
+  { id: 'largest', label: 'לטובת גדולות' },
+  { id: 'smallest', label: 'לטובת קטנות' },
+];
+
+export function TypeMixEditor({ types, mixStrategy, remainderStrategy, onChange, onStrategyChange, onRemainderStrategyChange }: Props) {
   const totalPct = types.reduce((s, t) => s + t.percentage, 0);
-  const pctOk = types.length === 0 || Math.abs(totalPct - 100) < 0.5;
+  const pctOver = totalPct > 100 + 0.5;
+  const pctUnder = totalPct < 99.5 && types.length > 0;
 
   function update(id: string, field: keyof ApartmentType, raw: string | number) {
     const num = typeof raw === 'string' ? (raw === '' ? 0 : Number(raw)) : raw;
@@ -87,7 +97,9 @@ export function TypeMixEditor({ types, mixStrategy, onChange, onStrategyChange }
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-slate-700">סוגי דירות</h3>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${pctOk ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+          pctOver ? 'bg-red-100 text-red-600' : pctUnder ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+        }`}>
           סה"כ: {totalPct.toFixed(0)}%
         </span>
       </div>
@@ -137,6 +149,37 @@ export function TypeMixEditor({ types, mixStrategy, onChange, onStrategyChange }
           </div>
         </div>
       ))}
+
+      {pctOver && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 flex items-center gap-2">
+          <span>✕</span>
+          <span>סכום האחוזים ({totalPct.toFixed(0)}%) עולה על 100% — יש להקטין</span>
+        </div>
+      )}
+
+      {pctUnder && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col gap-2">
+          <p className="text-xs text-blue-700 font-medium">
+            נותרים {(100 - totalPct).toFixed(1)}% — אסטרטגיית השלמה אוטומטית:
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {REMAINDER_STRATEGIES.map(s => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onRemainderStrategyChange(s.id)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  remainderStrategy === s.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-100'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button
         type="button"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { BuildingDef, ApartmentType, MixStrategy, PlacementStrategy } from '../types';
+import type { BuildingDef, ApartmentType, MixStrategy, RemainderStrategy, PlacementStrategy } from '../types';
 import { NumberInput } from './NumberInput';
 import { TypeMixEditor } from './TypeMixEditor';
 
@@ -46,8 +46,8 @@ export function BuildingCard({ building, onChange, onDelete, globalTypes, global
           <div className="grid grid-cols-2 gap-3">
             <NumberInput label="מספר קומות" value={building.numFloors} onChange={v => set('numFloors', v)} min={1} max={50} />
             <NumberInput label="דירות בקומה" value={building.apartmentsPerFloor} onChange={v => set('apartmentsPerFloor', v)} min={1} max={20} placeholder="אוטומטי" />
-            <NumberInput label="דירות קומת קרקע" value={building.groundFloorApartments} onChange={v => set('groundFloorApartments', v)} min={0} max={30} placeholder="כמו קומה רגילה" />
-            <NumberInput label="דירות גג" value={building.roofApartments} onChange={v => set('roofApartments', v)} min={0} max={30} placeholder="כמו קומה רגילה" />
+            <NumberInput label="דירות קומת קרקע" value={building.groundFloorApartments} onChange={v => set('groundFloorApartments', v)} min={0} max={30} placeholder="חצי קומה רגילה" />
+            <NumberInput label="דירות גג" value={building.roofApartments} onChange={v => set('roofApartments', v)} min={0} max={30} placeholder="חצי קומה רגילה" />
           </div>
 
           {/* Floor footprint */}
@@ -98,8 +98,10 @@ export function BuildingCard({ building, onChange, onDelete, globalTypes, global
               <TypeMixEditor
                 types={building.types}
                 mixStrategy={building.mixStrategy}
+                remainderStrategy={building.remainderStrategy}
                 onChange={types => set('types', types)}
                 onStrategyChange={(s: MixStrategy) => set('mixStrategy', s)}
+                onRemainderStrategyChange={(s: RemainderStrategy) => set('remainderStrategy', s)}
               />
             )}
             {building.useProjectMix && globalTypes.length > 0 && (

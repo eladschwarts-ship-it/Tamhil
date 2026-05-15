@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
-import type { BuildingInputs, BuildingDef, PlacementStrategy, MixStrategy } from './types';
+import type { BuildingInputs, BuildingDef, PlacementStrategy, MixStrategy, RemainderStrategy } from './types';
 import { optimizeProject } from './optimizer';
 import { NumberInput } from './components/NumberInput';
 import { TypeMixEditor } from './components/TypeMixEditor';
@@ -22,6 +22,7 @@ function newBuilding(n: number): BuildingDef {
     useProjectMix: true,
     types: [],
     mixStrategy: null,
+    remainderStrategy: null,
     placementStrategy: 'uniform',
   };
 }
@@ -40,6 +41,7 @@ const DEFAULT_INPUTS: BuildingInputs = {
     { id: 'large', label: 'גדולה', minArea: 90, maxArea: 130, percentage: 20, color: '#f59e0b' },
   ],
   mixStrategy: null,
+  remainderStrategy: null,
   placementStrategy: 'uniform',
   buildings: [newBuilding(1)],
 };
@@ -203,8 +205,10 @@ export default function App() {
               <TypeMixEditor
                 types={pending.types}
                 mixStrategy={pending.mixStrategy}
+                remainderStrategy={pending.remainderStrategy}
                 onChange={types => update('types', types)}
                 onStrategyChange={(s: MixStrategy) => update('mixStrategy', s)}
+                onRemainderStrategyChange={(s: RemainderStrategy) => update('remainderStrategy', s)}
               />
               {pending.types.length > 0 && !pctOk && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 flex items-center gap-2">

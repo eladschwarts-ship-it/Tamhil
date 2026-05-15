@@ -1,7 +1,7 @@
 import type {
   BuildingInputs, BuildingResult, ApartmentTypeResult,
   FloorResult, FloorApartment, ApartmentType, BuildingDef,
-  ProjectResult
+  ProjectResult, RemainderStrategy
 } from './types';
 
 function midpoint(min: number, max: number) { return (min + max) / 2; }
@@ -83,6 +83,34 @@ function distributeToFloors(
   return result;
 }
 
+function applyRemainderStrategy(types: ApartmentType[], strategy: RemainderStrategy | null): ApartmentType[] {
+  if (types.length === 0) return types;
+  const total = types.reduce((s, t) => s + t.percentage, 0);
+  if (total > 100 + 0.5) return types;
+  if (Math.abs(total - 100) < 0.5) return types;
+  const remaining = 100 - total;
+  const eff = strategy ?? 'proportional';
+  if (eff === 'proportional') {
+    const scale = 100 / total;
+    return types.map(t => ({ ...t, percentage: t.percentage * scale }));
+  }
+  if (eff === 'equal') {
+    const add = remaining / types.length;
+    return types.map(t => ({ ...t, percentage: t.percentage + add }));
+  }
+  if (eff === 'largest') {
+    const maxAvg = Math.max(...types.map(t => midpoint(t.minArea, t.maxArea)));
+    const target = types.find(t => midpoint(t.minArea, t.maxArea) === maxAvg)!.id;
+    return types.map(t => t.id === target ? { ...t, percentage: t.percentage + remaining } : t);
+  }
+  if (eff === 'smallest') {
+    const minAvg = Math.min(...types.map(t => midpoint(t.minArea, t.maxArea)));
+    const target = types.find(t => midpoint(t.minArea, t.maxArea) === minAvg)!.id;
+    return types.map(t => t.id === target ? { ...t, percentage: t.percentage + remaining } : t);
+  }
+  return types;
+}
+
 function distributeByPercentage(types: ApartmentType[], N: number): number[] {
   const rawCounts = types.map(t => (t.percentage / 100) * N);
   const flooredCounts = rawCounts.map(c => Math.floor(c));
@@ -98,13 +126,20 @@ export function optimizeBuilding(
   bDef: BuildingDef,
   globalTypes: ApartmentType[],
   globalMixStrategy: string | null,
-  globalPlacementStrategy: string
+  globalPlacementStrategy: string,
+  globalRemainderStrategy: RemainderStrategy | null = null
 ): BuildingResult {
   const warnings: string[] = [];
 
-  const effectiveTypes = bDef.useProjectMix
+  const rawTypes = bDef.useProjectMix
     ? (globalTypes.length > 0 ? globalTypes : DEFAULT_STRATEGY_TYPES[globalMixStrategy ?? 'equal'])
     : (bDef.types.length > 0 ? bDef.types : DEFAULT_STRATEGY_TYPES[bDef.mixStrategy ?? globalMixStrategy ?? 'equal']);
+
+  const effectiveRemainderStrategy = bDef.useProjectMix
+    ? globalRemainderStrategy
+    : (bDef.remainderStrategy ?? globalRemainderStrategy);
+
+  const effectiveTypes = applyRemainderStrategy(rawTypes, effectiveRemainderStrategy);
 
   const placementStrategy = bDef.useProjectMix ? globalPlacementStrategy : bDef.placementStrategy;
 
@@ -145,8 +180,10 @@ export function optimizeBuilding(
 
   const resolvedNetFloor = floorFootprint ? floorFootprint - lobbyPerFloor : weightedAvgArea * APF;
   const resolvedFootprint = floorFootprint ?? (resolvedNetFloor + lobbyPerFloor);
-  const groundApts = bDef.groundFloorApartments ?? APF;
-  const roofApts = F >= 2 ? (bDef.roofApartments ?? APF) : groundApts;
+  const halfApf = Math.max(1, Math.round(APF / 2));
+  const groundApts = bDef.groundFloorApartments ?? halfApf;
+  const roofApts = F >= 2 ? (bDef.roofApartments ?? halfApf) : groundApts;
+  N = F === 1 ? groundApts : groundApts + Math.max(0, F - 2) * APF + roofApts;
 
   const counts = distributeByPercentage(effectiveTypes, N);
   const typeResults: ApartmentTypeResult[] = effectiveTypes.map((t, i) => {
@@ -195,7 +232,7 @@ export function optimizeBuilding(
 
 export function optimizeProject(inputs: BuildingInputs): ProjectResult {
   const buildingResults = inputs.buildings.map(b =>
-    optimizeBuilding(b, inputs.types, inputs.mixStrategy, inputs.placementStrategy)
+    optimizeBuilding(b, inputs.types, inputs.mixStrategy, inputs.placementStrategy, inputs.remainderStrategy ?? null)
   );
 
   const totalApartments = buildingResults.reduce((s, r) => s + r.totalApartments, 0);
@@ -242,8 +279,8 @@ export function optimize(inputs: BuildingInputs): BuildingResult {
     numFloors: null, apartmentsPerFloor: null,
     groundFloorApartments: null, roofApartments: null,
     floorFootprint: null, lobbyAreaMode: 'fixed', lobbyArea: 20, lobbyKey: null,
-    useProjectMix: true, types: [], mixStrategy: null, placementStrategy: 'uniform',
-  }, inputs.types, inputs.mixStrategy, inputs.placementStrategy);
+    useProjectMix: true, types: [], mixStrategy: null, remainderStrategy: null, placementStrategy: 'uniform',
+  }, inputs.types, inputs.mixStrategy, inputs.placementStrategy, inputs.remainderStrategy ?? null);
 }
 
 // ─── Architect Validator ────────────────────────────────────────────────────
@@ -277,8 +314,8 @@ function validateProject(
   // 2. Project mix percentage sum
   if (inputs.types.length > 0) {
     const pct = inputs.types.reduce((s, t) => s + t.percentage, 0);
-    if (Math.abs(pct - 100) > 0.5) {
-      add('error', 'MIX_PCT_SUM', 'סכום אחוזי תמהיל שגוי', `סכום האחוזים בתמהיל הפרויקט הוא ${pct.toFixed(1)}% במקום 100%.`, 'ודא שסכום האחוזים בתמהיל שווה בדיוק ל-100%.');
+    if (pct > 100 + 0.5) {
+      add('error', 'MIX_PCT_SUM', 'סכום אחוזי תמהיל עולה על 100%', `סכום האחוזים בתמהיל הפרויקט הוא ${pct.toFixed(1)}% — חייב להיות 100% לכל היותר.`, 'הקטן אחוז אחד או יותר מסוגי הדירות.');
     }
   }
 
@@ -322,8 +359,8 @@ function validateProject(
     // Building-specific mix validation
     if (!bDef.useProjectMix && bDef.types.length > 0) {
       const pct = bDef.types.reduce((s, t) => s + t.percentage, 0);
-      if (Math.abs(pct - 100) > 0.5) {
-        add('error', 'BUILDING_MIX_PCT', `${bName}: סכום אחוזי תמהיל שגוי`, `סכום האחוזים בתמהיל ${bName} הוא ${pct.toFixed(1)}% במקום 100%.`, 'ודא שסכום האחוזים בתמהיל הספציפי לבניין שווה ל-100%.', bid);
+      if (pct > 100 + 0.5) {
+        add('error', 'BUILDING_MIX_PCT', `${bName}: סכום אחוזי תמהיל עולה על 100%`, `סכום האחוזים בתמהיל ${bName} הוא ${pct.toFixed(1)}% — חייב להיות 100% לכל היותר.`, 'הקטן אחוז אחד או יותר מסוגי הדירות.', bid);
       }
     }
 

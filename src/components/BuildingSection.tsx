@@ -132,7 +132,7 @@ function FloorRow({ floor, maxArea }: { floor: import('../types').FloorResult; m
       </div>
 
       <div className="text-[10px] text-slate-400 shrink-0 w-12 text-left">
-        {floor.grossArea.toFixed(0)} מ"ר
+        {(floor.netArea + floor.lobbyArea).toFixed(0)} מ"ר
       </div>
     </div>
   );

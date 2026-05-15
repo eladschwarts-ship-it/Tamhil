@@ -1,6 +1,7 @@
 export type MixStrategy = 'equal' | 'maximize-large' | 'maximize-small';
 export type PlacementStrategy = 'large-top' | 'small-bottom' | 'uniform' | 'large-bottom';
 export type TotalAreaMode = 'manual' | 'by-avg-area' | 'by-plot-pct';
+export type RemainderStrategy = 'proportional' | 'equal' | 'largest' | 'smallest';
 
 export interface ApartmentType {
   id: string;
@@ -25,6 +26,7 @@ export interface BuildingDef {
   useProjectMix: boolean;
   types: ApartmentType[];
   mixStrategy: MixStrategy | null;
+  remainderStrategy: RemainderStrategy | null;
   placementStrategy: PlacementStrategy;
 }
 
@@ -44,6 +46,7 @@ export interface BuildingInputs {
   // Global mix
   types: ApartmentType[];
   mixStrategy: MixStrategy | null;
+  remainderStrategy: RemainderStrategy | null;
   placementStrategy: PlacementStrategy;
 
   // Buildings
