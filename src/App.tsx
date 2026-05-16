@@ -218,37 +218,6 @@ export default function App() {
               )}
             </Section>
 
-            {/* Buildings */}
-            <Section
-              title="בניינים"
-              action={
-                <button type="button" onClick={addBuilding}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-                  <span className="text-lg leading-none">+</span> הוסף בניין
-                </button>
-              }
-            >
-              {pending.buildings.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">לא הוגדרו בניינים — לחץ "הוסף בניין"</p>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {pending.buildings.map(b => (
-                    <BuildingCard
-                      key={b.id}
-                      building={b}
-                      onChange={updated => updateBuilding(b.id, updated)}
-                      onDelete={() => deleteBuilding(b.id)}
-                      globalTypes={pending.types}
-                      globalMixStrategy={pending.mixStrategy}
-                    />
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <div className="bg-slate-100 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed">
-              <strong className="text-slate-600">אסטרטגיית חישוב:</strong> נקודת אמצע של טווח שטח לכל סוג. חלוקה לפי שבר מירבי (largest remainder). נתונים חסרים נגזרים מהנתונים הקיימים.
-            </div>
           </div>
 
           {/* RIGHT */}
@@ -273,6 +242,39 @@ export default function App() {
               />
             </Section>
           </div>
+        </div>
+
+        {/* Buildings — full-width horizontal row */}
+        <Section
+          title="בניינים"
+          action={
+            <button type="button" onClick={addBuilding}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+              <span className="text-lg leading-none">+</span> הוסף בניין
+            </button>
+          }
+        >
+          {pending.buildings.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-4">לא הוגדרו בניינים — לחץ "הוסף בניין"</p>
+          ) : (
+            <div className="flex flex-row gap-4 overflow-x-auto pb-1">
+              {pending.buildings.map(b => (
+                <div key={b.id} className="flex-shrink-0 w-80">
+                  <BuildingCard
+                    building={b}
+                    onChange={updated => updateBuilding(b.id, updated)}
+                    onDelete={() => deleteBuilding(b.id)}
+                    globalTypes={pending.types}
+                    globalMixStrategy={pending.mixStrategy}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <div className="bg-slate-100 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed">
+          <strong className="text-slate-600">אסטרטגיית חישוב:</strong> נקודת אמצע של טווח שטח לכל סוג. חלוקה לפי שבר מירבי (largest remainder). נתונים חסרים נגזרים מהנתונים הקיימים.
         </div>
       </div>
     </div>

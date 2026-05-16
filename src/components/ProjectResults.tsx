@@ -24,6 +24,15 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+      <p className="text-[10px] text-slate-400 leading-tight">{label}</p>
+      <p className="text-sm font-bold text-slate-800 leading-tight">{value}</p>
+    </div>
+  );
+}
+
 export function ProjectResults({ result, placementStrategy, onPlacementStrategyChange }: Props) {
   const [openBuilding, setOpenBuilding] = useState<string | null>(
     result.buildingResults.length === 1 ? result.buildingResults[0].buildingId : null
@@ -133,9 +142,9 @@ export function ProjectResults({ result, placementStrategy, onPlacementStrategyC
               <span className="text-slate-400 text-sm">{openBuilding === br.buildingId ? '▾' : '▸'}</span>
             </button>
             {openBuilding === br.buildingId && (
-              <div className="p-4">
+              <div className="p-4 flex flex-col gap-4">
                 {br.warnings.length > 0 && (
-                  <div className="flex flex-col gap-1 mb-3">
+                  <div className="flex flex-col gap-1">
                     {br.warnings.map((w, i) => (
                       <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700 flex gap-2">
                         <span>⚠</span><span>{w}</span>
@@ -143,7 +152,53 @@ export function ProjectResults({ result, placementStrategy, onPlacementStrategyC
                     ))}
                   </div>
                 )}
-                <BuildingSection result={br} strategy={placementStrategy} onStrategyChange={onPlacementStrategyChange} />
+
+                {/* Building stats grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <MiniStat label="קומות" value={br.numFloors.toString()} />
+                  <MiniStat label="דירות בקומה" value={br.apartmentsPerFloor.toString()} />
+                  <MiniStat label="ק. קרקע" value={br.groundFloorApartments.toString()} />
+                  <MiniStat label="קומת גג" value={br.roofApartments.toString()} />
+                  <MiniStat label='תכסית קומה' value={`${br.floorFootprint.toFixed(0)} מ"ר`} />
+                  <MiniStat label='מבואה' value={`${br.lobbyAreaPerFloor.toFixed(0)} מ"ר`} />
+                  <MiniStat label='נטו לקומה' value={`${br.netFloorArea.toFixed(0)} מ"ר`} />
+                  <MiniStat label='שטח ממוצע' value={`${br.avgAreaPerApartment.toFixed(0)} מ"ר`} />
+                  <MiniStat label='סה"כ יח"ד' value={br.totalApartments.toString()} />
+                  <MiniStat label='שטח נטו' value={`${br.totalNetArea.toFixed(0)} מ"ר`} />
+                  <MiniStat label='שטח בניין' value={`${br.totalBuildingArea.toFixed(0)} מ"ר`} />
+                  <MiniStat label='ניצולת' value={`${(br.utilizationRate * 100).toFixed(0)}%`} />
+                </div>
+
+                {/* Type mix */}
+                {br.types.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex h-3.5 rounded-full overflow-hidden gap-0.5">
+                      {br.types.filter(t => t.count > 0).map(t => (
+                        <div key={t.id} className="h-full" style={{ flex: t.count, background: t.color }}
+                          title={`${t.label}: ${t.count} (${t.percentage.toFixed(1)}%)`} />
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 gap-0 rounded-lg border border-slate-200 overflow-hidden text-xs">
+                      {br.types.map((t, i) => (
+                        <div key={t.id} className={`flex items-center gap-2 px-2.5 py-1.5 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                          <span className="flex-1 text-slate-700">{t.label}</span>
+                          <span className="text-slate-400">{t.minArea}–{t.maxArea} מ"ר</span>
+                          <span className="font-semibold text-slate-800 w-6 text-center">{t.count}</span>
+                          <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: t.color + '18', color: t.color }}>
+                            {t.percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cross-section diagram */}
+                <div className="flex flex-col gap-1">
+                  <h4 className="text-xs font-semibold text-slate-600">חתך בניין סכמטי</h4>
+                  <BuildingSection result={br} strategy={placementStrategy} onStrategyChange={onPlacementStrategyChange} />
+                </div>
               </div>
             )}
           </div>
